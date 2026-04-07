@@ -1,0 +1,7 @@
+*** Using Compiler 'V5.06 update 5 (build 528)', folder: 'D:\mdk\ARM\ARMCC\Bin'
+Build target 'canopen-slave'
+compiling can_app.c...
+linking...
+Program Size: Code=29940 RO-data=812 RW-data=3128 ZI-data=2376  
+".\Objects\led.axf" - 0 Error(s), 0 Warning(s).
+Build Time Elapsed:  00:00:01
