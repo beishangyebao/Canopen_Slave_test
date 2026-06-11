@@ -27,7 +27,10 @@ void Driver_Send_CommandFrame(const G4_CommandFrame *command)
     msg.data[1] = (uint8_t)command->mode;
     msg.data[2] = command->control_flags;
     msg.data[3] = (uint8_t)command->homing_method;
-    /* 第 4~7 字节放 32 位目标值，按小端字节序拆分。 */
+    /*
+     * 第 4~7 字节放 32 位目标值，按小端字节序拆分。
+     * mode=4 时该字段是转矩千分比，不在 slave 侧换算成电流。
+     */
     msg.data[4] = (uint8_t)(command->target_value & 0xFF);
     msg.data[5] = (uint8_t)((command->target_value >> 8) & 0xFF);
     msg.data[6] = (uint8_t)((command->target_value >> 16) & 0xFF);

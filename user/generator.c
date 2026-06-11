@@ -31,6 +31,7 @@ extern volatile uint8_t g_g4_comm_timeout;
  * 0x6064 实际位置
  * 0x6065 跟随误差窗口
  * 0x6066 跟随误差超时
+ * 0x606B 速度需求值
  * 0x606C 实际速度
  * 0x6071 目标转矩
  * 0x6074 转矩需求值
@@ -50,21 +51,25 @@ extern volatile uint8_t g_g4_comm_timeout;
  * 0x6098/0x6099/0x609A 回零相关参数
  */
 extern UNS16 TestSlave_obj6040;
-extern UNS16 TestSlave_obj6041;
-extern UNS8 TestSlave_obj6060;
-extern UNS8 TestSlave_obj6061;
-extern UNS32 TestSlave_obj6062;
-extern UNS32 TestSlave_obj6064;
+extern INTEGER16 TestSlave_obj605A;
+extern INTEGER16 TestSlave_obj605B;
+extern INTEGER16 TestSlave_obj605C;
+extern INTEGER16 TestSlave_obj605D;
+extern INTEGER16 TestSlave_obj605E;
+extern INTEGER8 TestSlave_obj6060;
+extern INTEGER8 TestSlave_obj6061;
+extern INTEGER32 TestSlave_obj6062;
+extern INTEGER32 TestSlave_obj6064;
 extern UNS32 TestSlave_obj6065;
 extern UNS16 TestSlave_obj6066;
-extern UNS32 TestSlave_obj606C;
-extern UNS16 TestSlave_obj6071;
+extern INTEGER32 TestSlave_obj606B;
+extern INTEGER32 TestSlave_obj606C;
+extern INTEGER16 TestSlave_obj6071;
 extern INTEGER16 TestSlave_obj6074;
-extern INTEGER16 TestSlave_obj6075;
-extern UNS16 TestSlave_obj6077;
-extern UNS32 TestSlave_obj607A;
-extern UNS32 TestSlave_obj607D_min;
-extern UNS32 TestSlave_obj607D_max;
+extern INTEGER16 TestSlave_obj6077;
+extern INTEGER32 TestSlave_obj607A;
+extern INTEGER32 TestSlave_obj607D_min;
+extern INTEGER32 TestSlave_obj607D_max;
 extern UNS16 TestSlave_obj6072;
 extern UNS16 TestSlave_obj6073;
 extern UNS32 TestSlave_obj607F;
@@ -74,11 +79,11 @@ extern UNS32 TestSlave_obj6083;
 extern UNS32 TestSlave_obj6084;
 extern UNS32 TestSlave_obj6085;
 extern UNS32 TestSlave_obj6087;
-extern UNS8 TestSlave_obj6098;
+extern INTEGER8 TestSlave_obj6098;
 extern UNS32 TestSlave_obj6099_speed1;
 extern UNS32 TestSlave_obj6099_speed2;
 extern UNS32 TestSlave_obj609A;
-extern UNS32 TestSlave_obj60FF;
+extern INTEGER32 TestSlave_obj60FF;
 
 /* 当前工程实际用到的模式值。 */
 #define OPMODE_PROFILE_POSITION  1
@@ -95,6 +100,9 @@ extern UNS32 TestSlave_obj60FF;
 #define CW_RELATIVE              0x0040u
 #define CW_HALT                  0x0100u
 
+/* option code 为 0 时采用直接 disable，其余值采用受控 quick stop/halt。 */
+#define DS402_OPTION_DISABLE     0
+
 /*
  * 轨迹发生器内部统一采用 Q24.8 定点格式处理速度和部分中间量。
  * 这样既能保留低速时的小数精度，又避免运行期引入浮点开销。
@@ -105,6 +113,20 @@ extern UNS32 TestSlave_obj60FF;
 #define PROFILE_Q8_ONE           (1 << PROFILE_Q8_SHIFT)         // 1.0
 #define PROFILE_Q8_HALF          (1 << (PROFILE_Q8_SHIFT - 1))   // 0.5
 #define PROFILE_MIN_RATE_Q8      1   // 最小非零速度，防止除以零
+
+/*
+ * 位置外环参数：
+ * slave 现在负责把位置模式的“规划位置 - 实际位置”闭环成速度给定，
+ * control 板只继续执行已有速度环和电流环。
+ *
+ * KP 使用 Q8 速度/count：
+ * 输出速度(Q8) = 位置误差(count) * POSITION_LOOP_KP_Q8。
+ * 当前默认 64，相当于 0.25 rpm/count，可按机构刚度和速度环响应再整定。
+ *
+ * KI 默认置 0，先用 P + 轨迹速度前馈保证稳妥；若低速静差明显，再逐步增加。
+ */
+#define POSITION_LOOP_KP_Q8      64
+#define POSITION_LOOP_KI_Q8_PER_SEC 0
 
 /* EMCY 上报码，分别对应通信超时、驱动故障、跟随误差。 */
 #define EMCY_G4_TIMEOUT          0x8130u
@@ -149,6 +171,14 @@ typedef struct
     int32_t err_pos;
     int32_t err_vel_q8;
 
+    /*
+     * 位置外环输出：
+     * position_vel_cmd_q8 是最终发给 control 速度环的速度给定；
+     * position_integral_q8 是位置 PI 的积分速度项。
+     */
+    int32_t position_vel_cmd_q8;
+    int64_t position_integral_q8;
+
     /* 跟随误差超时计时器，单位 us */
     uint32_t follow_err_timer_us;
 
@@ -173,10 +203,10 @@ static bool s_following_emcy_active = false;
 
 /* 基础辅助函数，统一处理符号和溢出细节。 */
 /*
- * 对象字典里很多物理量类型是 UNS32，但语义上其实是有符号量。
- * 这里统一转成 int32_t，避免后面每次都在逻辑里显式强转。
+ * 对象字典里位置和速度量使用 INTEGER32。
+ * 这里集中转成 int32_t，避免后面每次都在逻辑里显式强转。
  */
-static inline int32_t TrapProfile_OdToS32(UNS32 raw)
+static inline int32_t TrapProfile_OdToS32(INTEGER32 raw)
 {
     return (int32_t)raw;
 }
@@ -274,7 +304,7 @@ static inline int32_t TrapProfile_GetMaxVelLimit(void)
 /* 用驱动最新反馈重新对齐软件规划器状态 */
 static inline void TrapProfile_ReSyncFromFeedback(TrapProfile_par *tp)
 {
-    tp->current_pos = TestSlave_obj6064;
+    tp->current_pos = (UNS32)TestSlave_obj6064;
     tp->current_pos_frac_q8 = 0;
     tp->current_vel_q8 = TrapProfile_I32ToQ8(TrapProfile_OdToS32(TestSlave_obj606C));
 }
@@ -394,6 +424,84 @@ static inline int32_t TrapProfile_RampTo(int32_t current_q8,
     }
 }
 
+/* 按速度上限对 Q8 速度量做对称饱和，集中处理 int64 到 int32 的边界。 */
+static inline int32_t TrapProfile_ClampVelQ8(int64_t value_q8, int32_t limit_q8)
+{
+    if (limit_q8 < PROFILE_MIN_RATE_Q8) {
+        limit_q8 = PROFILE_MIN_RATE_Q8;
+    }
+
+    if (value_q8 > (int64_t)limit_q8) {
+        return limit_q8;
+    }
+
+    if (value_q8 < -(int64_t)limit_q8) {
+        return -limit_q8;
+    }
+    return (int32_t)value_q8;
+}
+
+
+/* 清空位置外环状态，通常在模式切换、失能、急停或新目标开始时调用。 */
+static inline void TrapProfile_ResetPositionLoop(TrapProfile_par *tp)
+{
+    tp->position_vel_cmd_q8 = 0;
+    tp->position_integral_q8 = 0;
+}
+
+/*
+ * 位置环：
+ * 以梯形轨迹规划出的 current_pos 作为位置参考，G4/control 反馈的 0x6064 作为实际位置，
+ * 输出一条速度给定给 control 的速度环。
+ *
+ * 输出结构：
+ * speed_cmd = 轨迹速度前馈 + Kp * 位置误差 + Ki * 积分项
+ *
+ * 这样 slave 保留位置规划和位置闭环，control 只承担速度环/电流环，符合现有控制边界
+ */
+/**
+ * 更新位置控制环的函数，用于计算位置误差并生成速度命令
+ * @param tp 指向TrapProfile_par结构体的指针，包含轨迹参数和状态
+ * @param fb_pos 反馈位置值
+ */
+static void TrapProfile_UpdatePositionLoop(TrapProfile_par *tp, UNS32 fb_pos)
+{
+    // 计算位置误差（当前位置与目标位置的差值）
+    int32_t pos_err = TrapProfile_PosDiff(fb_pos, tp->current_pos);
+
+    // 计算P项 ，使用Q8定点数格式
+    int64_t p_term_q8 = (int64_t)pos_err * (int64_t)POSITION_LOOP_KP_Q8;
+
+    // 用于存储速度命令的变量，同样使用Q8定点数格式
+    int64_t speed_cmd_q8;
+
+    // 如果积分增益不为零，则执行积分项（I项）的计算
+    if (POSITION_LOOP_KI_Q8_PER_SEC > 0) {
+
+        // 计算积分步长，考虑了采样时间tp->cp_us（微秒）
+        int64_t i_step_q8 = ((int64_t)pos_err *
+                             (int64_t)POSITION_LOOP_KI_Q8_PER_SEC *
+                             (int64_t)tp->cp_us) / 1000000LL;
+
+        // 将积分步长累加到历史积分项 tp->position_integral_q8 中
+        // 更新位置积分项，并进行限幅
+        tp->position_integral_q8 += i_step_q8;
+
+        // 对积分项进行限幅，防止积分饱和，限制幅度为最大速度
+        tp->position_integral_q8 = TrapProfile_ClampVelQ8(tp->position_integral_q8,
+                                                          tp->param_max_vel_q8);
+    } else {
+        // 如果积分增益为零，则清除积分项
+        tp->position_integral_q8 = 0;
+    }
+
+    // 计算最终目标速度命令 = 当前速度 + 比例项 + 积分项
+    speed_cmd_q8 = (int64_t)tp->current_vel_q8 + p_term_q8 + tp->position_integral_q8;
+
+    // 对速度命令进行限幅，确保不超过最大速度
+    tp->position_vel_cmd_q8 = TrapProfile_ClampVelQ8(speed_cmd_q8, tp->param_max_vel_q8);
+}
+
 /* 用当前反馈和保守默认参数初始化规划器 */
 static void TrapProfile_Init(TrapProfile_par *tp,
                              TrapProfile_state *ts,
@@ -418,6 +526,8 @@ static void TrapProfile_Init(TrapProfile_par *tp,
     /* 按编码器分辨率、机械精度调整 */
     tp->err_pos = PROFILE_DEFAULT_POS_ERR;
     tp->err_vel_q8 = TrapProfile_I32ToQ8(PROFILE_DEFAULT_VEL_ERR);
+
+    TrapProfile_ResetPositionLoop(tp);
 
     tp->follow_err_timer_us = 0u;
 
@@ -444,9 +554,10 @@ static void TrapProfile_ResetState(TrapProfile_par *tp,
 
     tp->follow_err_timer_us = 0u;
 
+    TrapProfile_ResetPositionLoop(tp);
+
     tp->target_reached = false;
     tp->setpoint_ack = false;
-    tp->following_error = false;
 
     tp->last_new_setpoint = ((TestSlave_obj6040 & CW_NEW_SETPOINT) != 0u);
 
@@ -464,6 +575,7 @@ static void TrapProfile_EnterQuickStop(TrapProfile_par *tp,
         tp->cmd_target_vel_q8 = 0;
         tp->target_reached = false;
         tp->setpoint_ack = false;
+        TrapProfile_ResetPositionLoop(tp);
         *ts = qstop_state;
     }
 }
@@ -478,6 +590,7 @@ static void TrapProfile_EnterHalt(TrapProfile_par *tp,
         tp->cmd_target_vel_q8 = 0;
         tp->target_reached = false;
         tp->setpoint_ack = false;
+        TrapProfile_ResetPositionLoop(tp);
         *ts = halt_state;
     }
 }
@@ -491,21 +604,14 @@ static bool TrapProfile_Update(TrapProfile_par *tp,
 
     uint16_t cw = TestSlave_obj6040;
     int8_t mode = (int8_t)TestSlave_obj6060;
-    UNS32 fb_pos = TestSlave_obj6064;
-
-    bool operational = (TestSlave_Data.nodeState == Operational);
+    UNS32 fb_pos = (UNS32)TestSlave_obj6064;
 
     /*
-     * 低 4 位全 1 只是主站给出的“允许使能”请求。
-     * 真正的本地 enable 还必须满足 G4 反馈链路已经建立，
-     * 否则从站不允许在“驱动还未确认在线”的情况下开始执行运动命令。
+     * DS402 状态机已经统一解释 0x6040、NMT、G4 在线和故障条件。
+     * 轨迹发生器只查询状态机结果，不再自己用低 4 位全 1 拼“类使能”条件。
      */
-    bool enabled = operational &&
-                   g_g4_feedback_online &&
-                   ((cw & 0x000Fu) == 0x000Fu);
-
-    /* Quick Stop / Halt 只有在 enable 后才有意义。 */
-    bool qstop_req = enabled && ((cw & CW_QUICK_STOP) == 0u);
+    bool enabled = Ds402_IsOperationEnabled() && !tp->following_error;
+    bool qstop_req = Ds402_IsQuickStopActive() || Ds402_IsFaultReactionActive();
     bool halt_req = enabled && ((cw & CW_HALT) != 0u);
 
     /* New Setpoint 用上升沿检测；relative_move 决定 0x607A 的解释方式。 */
@@ -553,24 +659,15 @@ static bool TrapProfile_Update(TrapProfile_par *tp,
     /* ---------- 第 4 步：安全条件判断，必要时转入急停 ---------- */
 
     /*
-     * 只要节点不在 Operational、G4 已报故障、反馈链掉线，
-     * 或者链路尚未真正建立，都不允许继续保持运动态。
+     * DS402 进入故障反应或 quick stop 后，轨迹层只负责把规划速度收敛到 0。
+     * 普通未使能状态不会触发急停轨迹，而是直接贴合反馈回 idle。
      */
-    if (!operational || !g_g4_feedback_online || g_g4_fault_status || g_g4_comm_timeout) {
+    if (qstop_req) {
         if (TrapProfile_AbsS32(tp->current_vel_q8) > tp->err_vel_q8 ||
             *ts == active_state ||
             *ts == halt_state) {
             TrapProfile_EnterQuickStop(tp, ts, fb_pos);
-        } else {
-            TrapProfile_ResetState(tp, ts);
-            tp->last_op_mode = mode;
-            return true;
         }
-    }
-
-    //主站下发急停命令
-    if (qstop_req) {
-        TrapProfile_EnterQuickStop(tp, ts, fb_pos);
     }
 
     /* 已失能且不在急停中，直接回到跟随反馈的 idle */
@@ -588,7 +685,7 @@ static bool TrapProfile_Update(TrapProfile_par *tp,
 
         /* 在 new set-point 位上升沿启动新的位置运动。 */
         if (new_setpoint && !tp->last_new_setpoint && *ts != qstop_state) {
-            UNS32 raw_target_pos = TestSlave_obj607A;
+            UNS32 raw_target_pos = (UNS32)TestSlave_obj607A;
 
             /*
              * 绝对模式：0x607A 直接就是目标位置。
@@ -607,6 +704,9 @@ static bool TrapProfile_Update(TrapProfile_par *tp,
             tp->target_reached = false;
             tp->setpoint_ack = true;
             tp->following_error = false;
+
+            /* 新位置目标开始时清掉上一段运动留下的位置环积分。 */
+            TrapProfile_ResetPositionLoop(tp);
 
             tp->follow_err_timer_us = 0u;
 
@@ -657,6 +757,7 @@ static bool TrapProfile_Update(TrapProfile_par *tp,
         tp->current_pos = fb_pos;
         tp->current_pos_frac_q8 = 0;
         tp->current_vel_q8 = 0;
+        TrapProfile_ResetPositionLoop(tp);
         tp->follow_err_timer_us = 0u;
         tp->last_new_setpoint = new_setpoint;
         tp->last_op_mode = mode;
@@ -771,9 +872,24 @@ static bool TrapProfile_Update(TrapProfile_par *tp,
         * 这样内部规划位置不会漂到限位外面
         */
         TrapProfile_ClampPlannedPos(tp);
+
+        if (*ts == active_state) {
+            /*
+             * 位置模式不再把规划位置直接发给 control。
+             * 这里先在 slave 内部闭位置环，得到速度给定，再交给 control 的速度环。
+             */
+            TrapProfile_UpdatePositionLoop(tp, fb_pos);
+        } else {
+            /*
+             * 急停/Halt 阶段由命令类型约束 control 减速到 0，速度给定保持当前规划速度即可。
+             */
+            tp->position_vel_cmd_q8 = tp->current_vel_q8;
+            tp->position_integral_q8 = 0;
+        }
     } else {
         tp->current_pos = fb_pos;
         tp->current_pos_frac_q8 = 0;
+        TrapProfile_ResetPositionLoop(tp);
     }
 
     /* ---------- 第 11 步：位置模式执行跟随误差监控 ---------- */
@@ -811,6 +927,7 @@ static bool TrapProfile_Update(TrapProfile_par *tp,
             tp->current_vel_q8 = 0;
             tp->current_pos = fb_pos;
             tp->current_pos_frac_q8 = 0;
+            TrapProfile_ResetPositionLoop(tp);
 
             tp->cmd_target_pos = fb_pos;
             tp->cmd_target_vel_q8 = 0;
@@ -846,6 +963,7 @@ static bool TrapProfile_Update(TrapProfile_par *tp,
             tp->current_pos = fb_pos;
             tp->current_pos_frac_q8 = 0;
             tp->current_vel_q8 = 0;
+            TrapProfile_ResetPositionLoop(tp);
             tp->follow_err_timer_us = 0u;
 
             *ts = idle_state;
@@ -889,9 +1007,16 @@ static inline int32_t TrapProfile_GetPlannedVel(const TrapProfile_par *tp)
     return TrapProfile_Q8ToI32Round(tp->current_vel_q8);
 }
 
+/// 获取位置外环输出的速度给定，单位与 control 速度环约定一致
+static inline int32_t TrapProfile_GetPositionSpeedCommand(const TrapProfile_par *tp)
+{
+    /* 位置模式下发给 control 的不再是位置，而是 slave 位置环算出的速度命令。 */
+    return TrapProfile_Q8ToI32Round(tp->position_vel_cmd_q8);
+}
+
 /*
  * 下面这些写接口只服务于“从站内部生成、主站只读观察”的对象，
- * 例如 0x6041 / 0x6061 / 0x6064 / 0x606C。
+ * 例如 0x6061 / 0x6064 / 0x606C / 0x6077。
  *
  * 这些对象在 OD 中保持 RO 是正确的 DS402 语义，
  * 因为主站不应该去写状态字、模式显示和反馈值。
@@ -902,7 +1027,7 @@ static inline int32_t TrapProfile_GetPlannedVel(const TrapProfile_par *tp)
  * - 对从站内部允许更新
  * - 继续复用 CanFestival 的对象字典写入路径
  */
-static void Generator_WriteODU8IfChanged(UNS16 index, UNS8 *object, UNS8 value)
+static void Generator_WriteODI8IfChanged(UNS16 index, INTEGER8 *object, INTEGER8 value)
 {
     if (*object != value) {
         UNS32 size = sizeof(value);
@@ -910,7 +1035,7 @@ static void Generator_WriteODU8IfChanged(UNS16 index, UNS8 *object, UNS8 value)
     }
 }
 
-static void Generator_WriteODU16IfChanged(UNS16 index, UNS16 *object, UNS16 value)
+static void Generator_WriteODI16IfChanged(UNS16 index, INTEGER16 *object, INTEGER16 value)
 {
     if (*object != value) {
         UNS32 size = sizeof(value);
@@ -918,7 +1043,7 @@ static void Generator_WriteODU16IfChanged(UNS16 index, UNS16 *object, UNS16 valu
     }
 }
 
-static void Generator_WriteODU32IfChanged(UNS16 index, UNS32 *object, UNS32 value)
+static void Generator_WriteODI32IfChanged(UNS16 index, INTEGER32 *object, INTEGER32 value)
 {
     if (*object != value) {
         UNS32 size = sizeof(value);
@@ -932,21 +1057,29 @@ static bool Generator_IsSupportedMode(int8_t mode)
 {
     return (mode == OPMODE_PROFILE_POSITION) ||
            (mode == OPMODE_PROFILE_VELOCITY) ||
+           (mode == OPMODE_PROFILE_TORQUE) ||
            (mode == OPMODE_HOMING);
 }
 
-/* 只有模式仍有有效命令需要维持时才持续下发指令帧。 */
+/* 判断当前命令是否需要下发给 G4/control。 */
 static bool Generator_ShouldStreamCommand(const G4_CommandFrame *command)
 {
-    //检查当前模式是否被支持
-    if (!Generator_IsSupportedMode(command->mode)) {
-        return false;
+    if (command->cmd_type == CMD_TYPE_DISABLE) {
+        /*
+         * 失能命令必须显式送达 control，不能依赖“停止发送命令”来让下游停机。
+         * control 端另有命令超时保护，这里持续发送可让正常失能立即生效。
+         */
+        return true;
     }
 
-    //急停和暂停需要下发
     if (command->cmd_type == CMD_TYPE_QUICKSTOP ||
         command->cmd_type == CMD_TYPE_HALT) {
         return true;
+    }
+
+    //检查当前模式是否被支持
+    if (!Generator_IsSupportedMode(command->mode)) {
+        return false;
     }
 
     //非使能状态不下发
@@ -958,17 +1091,24 @@ static bool Generator_ShouldStreamCommand(const G4_CommandFrame *command)
     //根据模式判断
     switch (command->mode) {
 
-        //位置模式下只要状态机在 active 就继续下发
         case OPMODE_PROFILE_POSITION:
-            return (s_state == active_state);
+            /*
+             * 位置模式在 slave 侧闭位置外环，control 侧吃速度给定。
+             * 即使 slave 已经到位，也需要继续发送 0 速度保持命令，避免 control 沿用上一帧速度。
+             */
+            return true;
 
-            //速度模式下只要状态不在 idle，或者目标速度或当前速度明显非零就继续下发
         case OPMODE_PROFILE_VELOCITY:
-            return (s_state != idle_state) ||
-                   (TrapProfile_AbsS32(s_tp.cmd_target_vel_q8) > s_tp.err_vel_q8) ||
-                   (TrapProfile_AbsS32(s_tp.current_vel_q8) > s_tp.err_vel_q8);
+            /*
+             * 速度模式也持续发送当前给定，包括 0 速度保持命令。
+             * 这样 control 不会在 slave 停止发送后继续执行旧速度。
+             */
+            return true;
 
-        //急停模式下只要 new set-point 位还在就继续下发
+        case OPMODE_PROFILE_TORQUE:
+            return Ds402_IsOperationEnabled();
+
+        //回零模式下只要 new set-point 位还在就继续下发
         //该位为1时表示正在执行回零操作，需要持续下发命令；为0时表示回零完成，不需要再下发
         case OPMODE_HOMING:
             return ((TestSlave_obj6040 & CW_NEW_SETPOINT) != 0u);
@@ -987,23 +1127,16 @@ static G4_CommandFrame Generator_BuildCommandFrame(void)
     uint16_t cw = TestSlave_obj6040;
     int8_t mode = (int8_t)TestSlave_obj6060;
 
-    //判断是否处于运行状态
-    bool operational = (TestSlave_Data.nodeState == Operational);
-
-    //判断是否处于使能状态：运行状态 + 已建立G4反馈链路 + 控制字低4位全1 + G4无故障 + 无通信超时 + 无跟随误差
-    bool enabled = operational &&
-                   g_g4_feedback_online &&
-                   ((cw & 0x000Fu) == 0x000Fu) &&
-                   !g_g4_fault_status &&
-                   !g_g4_comm_timeout &&
-                   !s_tp.following_error;
-
-    //判断是否处于急停状态：处于急停状态/已使能且控制字急停位为0/有故障/通信超时/有跟随误差
-    bool qstop_active = (s_state == qstop_state) ||
-                        (enabled && ((cw & CW_QUICK_STOP) == 0u)) ||
-                        g_g4_fault_status ||
-                        g_g4_comm_timeout ||
-                        s_tp.following_error;
+    /*
+     * 使能、急停和故障都来自统一 DS402 状态机。
+     * 跟随误差刚在本周期内产生时，状态机会在下一周期进入 fault reaction；
+     * 这里额外屏蔽 enable，避免本周期继续下发运行命令。
+     */
+    bool enabled = Ds402_IsOperationEnabled() && !s_tp.following_error;
+    bool quick_stop_active = Ds402_IsQuickStopActive();
+    bool fault_reaction_active = Ds402_IsFaultReactionActive() || s_tp.following_error;
+    bool fault_active = Ds402_IsFault();
+    DS402_State ds402_state = Ds402_GetState();
 
     //判断是否处于暂停状态
     bool halt_active = (s_state == halt_state);
@@ -1023,11 +1156,31 @@ static G4_CommandFrame Generator_BuildCommandFrame(void)
     command.target_value = 0;
 
 
-    /* 急停优先级最高，其次是 Halt，最后才是正常使能。 */
-    if (qstop_active) {
-        command.cmd_type = CMD_TYPE_QUICKSTOP;
+    /*
+     * G4 命令优先级：
+     * 1. Fault 锁存后直接 disable，避免继续保持下游使能。
+     * 2. Fault reaction 按 0x605E 选择 quick stop 或 disable。
+     * 3. Quick stop 按 0x605A 选择 quick stop 或 disable。
+     * 4. Halt 按 0x605D 选择 halt 或 disable。
+     * 5. Operation enabled 才允许正常 enable。
+     */
+    if (fault_active) {
+        command.cmd_type = CMD_TYPE_DISABLE;
+    } else if (fault_reaction_active) {
+        command.cmd_type = (TestSlave_obj605E == DS402_OPTION_DISABLE) ?
+            CMD_TYPE_DISABLE : CMD_TYPE_QUICKSTOP;
+    } else if (quick_stop_active || s_state == qstop_state) {
+        command.cmd_type = (TestSlave_obj605A == DS402_OPTION_DISABLE) ?
+            CMD_TYPE_DISABLE : CMD_TYPE_QUICKSTOP;
     } else if (halt_active) {
-        command.cmd_type = CMD_TYPE_HALT;
+        command.cmd_type = (TestSlave_obj605D == DS402_OPTION_DISABLE) ?
+            CMD_TYPE_DISABLE : CMD_TYPE_HALT;
+    } else if (ds402_state == DS402_STATE_SWITCHED_ON) {
+        command.cmd_type = (TestSlave_obj605C == DS402_OPTION_DISABLE) ?
+            CMD_TYPE_DISABLE : CMD_TYPE_HALT;
+    } else if (ds402_state == DS402_STATE_READY_TO_SWITCH_ON) {
+        command.cmd_type = (TestSlave_obj605B == DS402_OPTION_DISABLE) ?
+            CMD_TYPE_DISABLE : CMD_TYPE_HALT;
     } else if (enabled) {
         command.cmd_type = CMD_TYPE_ENABLE;
     }
@@ -1036,8 +1189,11 @@ static G4_CommandFrame Generator_BuildCommandFrame(void)
     switch (mode) {
 
         case OPMODE_PROFILE_POSITION:
-            /* 位置模式下发送的是软件规划位置，而不是原始目标位置对象 */
-            command.target_value = TrapProfile_GetPlannedPos(&s_tp);
+            /*
+             * 位置模式下 slave 自己闭位置外环。
+             * 发给 control 的 target_value 是速度给定，让 control 继续使用已有速度环/电流环。
+             */
+            command.target_value = TrapProfile_GetPositionSpeedCommand(&s_tp);
             if (command.cmd_type != CMD_TYPE_DISABLE) {
                 command.control_flags = G4_FLAG_TRIGGER;
             }
@@ -1046,10 +1202,18 @@ static G4_CommandFrame Generator_BuildCommandFrame(void)
         case OPMODE_PROFILE_VELOCITY:
             command.target_value = TrapProfile_GetPlannedVel(&s_tp);
             break;
+
+        case OPMODE_PROFILE_TORQUE:
+            /* 转矩模式直接把 0x6071 作为 q 轴电流/转矩给定透传给 control。 */
+            command.target_value = (int32_t)TestSlave_obj6071;
+            break;
         
-        //目标值固定为0 控制字New Setpoint位为1时设置触发标志
+        //回零速度来自 0x6099 speed1，控制字 New Setpoint 位为1时设置触发标志
         case OPMODE_HOMING:
-            command.target_value = 0;
+            command.target_value = (int32_t)TestSlave_obj6099_speed1;
+            if (command.homing_method < 0) {
+                command.target_value = -command.target_value;
+            }
             if ((cw & CW_NEW_SETPOINT) != 0u) {
                 command.control_flags = G4_FLAG_TRIGGER;
             }
@@ -1064,65 +1228,98 @@ static G4_CommandFrame Generator_BuildCommandFrame(void)
     return command;
 }
 
-/* 生成符合DS402标准的状态字，向主站反馈驱动器的运行状态 */
-static UNS16 Generator_BuildStatusWord(void)
+/*
+ * Generator_IsStopDoneForDs402
+ *
+ * 函数作用：
+ * 判断位置/速度规划器是否已经满足 DS402 quick stop/fault reaction 的停稳条件。
+ *
+ * 返回：
+ * true 表示规划速度已经接近 0，并且在速度模式下实际速度也接近 0。
+ */
+static bool Generator_IsStopDoneForDs402(void)
 {
-    //获取当前控制字判断当前命令状态
-    uint16_t cw = TestSlave_obj6040;
-
-    //判断是否处于运行状态
-    bool operational = (TestSlave_Data.nodeState == Operational);
-
-    bool enabled = operational &&
-                   g_g4_feedback_online &&
-                   ((cw & 0x000Fu) == 0x000Fu) &&
-                   !g_g4_fault_status &&
-                   !g_g4_comm_timeout &&
-                   !s_tp.following_error;
-    bool qstop_active = (s_state == qstop_state) ||
-                        (enabled && ((cw & CW_QUICK_STOP) == 0u)) ||
-                        g_g4_fault_status ||
-                        g_g4_comm_timeout ||
-                        s_tp.following_error;
-
-    
-    UNS16 status;
+    bool planned_stop = (TrapProfile_AbsS32(s_tp.current_vel_q8) <= s_tp.err_vel_q8);
+    bool actual_stop = true;
 
     /*
-     * 这里返回的是面向主站的“类 DS402 状态字”。
-     * 不是完整标准实现，但保留了使能、急停、到位、ack、跟随误差这些关键位。
+     * 位置模式的 G4 反馈主字段是实际位置，本工程没有独立实际速度对象可用。
+     * 因此位置模式以规划速度停稳作为软件停机完成条件。
      */
-    if (g_g4_fault_status || g_g4_comm_timeout || s_tp.following_error) {
-        status = 0x0208u;
-    } else if (enabled) {
-        status = 0x0237u;
-    } else {
-        status = 0x0231u;
+    if ((int8_t)TestSlave_obj6060 == OPMODE_PROFILE_VELOCITY) {
+        int32_t actual_vel_q8 = TrapProfile_I32ToQ8(TrapProfile_OdToS32(TestSlave_obj606C));
+
+        /*
+         * 通信已经掉线时，实际速度无法再刷新。
+         * 为了避免 fault reaction 永远卡住，离线情况下只要求本地规划速度回零。
+         */
+        actual_stop = (g_g4_feedback_online == 0u) ||
+                      (TrapProfile_AbsS32(actual_vel_q8) <= s_tp.err_vel_q8);
     }
 
-    if (qstop_active) {
-        /* bit5 体现 quick stop 状态。 */
-        status &= (UNS16)(~0x0020u);
-    } else {
-        status |= 0x0020u;
-    }
+    return planned_stop && actual_stop;
+}
 
-    if (s_tp.target_reached) {
-        /* bit10：目标到达。 */
-        status |= 0x0400u;
-    }
+/*
+ * Generator_FillDs402Input
+ *
+ * 函数作用：
+ * 为统一 DS402 状态机准备位置/速度模式下的周期输入。
+ *
+ * 参数：
+ * input : 调用者提供的 DS402_Input 输出结构。
+ */
+void Generator_FillDs402Input(DS402_Input *input)
+{
+    bool hard_fault = (g_g4_fault_status != 0u) || (g_g4_comm_timeout != 0u);
+    bool stop_done = Generator_IsStopDoneForDs402();
 
-    if (s_tp.setpoint_ack && (int8_t)TestSlave_obj6060 == OPMODE_PROFILE_POSITION) {
-        /* bit12：位置模式下收到并接受了新的 set-point。 */
-        status |= 0x1000u;
-    }
+    input->controlword = TestSlave_obj6040;
+    input->startup_ready = true;
+    input->nmt_operational = (TestSlave_Data.nodeState == Operational);
+    input->drive_online = (g_g4_feedback_online != 0u);
+    input->local_fault = hard_fault || s_tp.following_error;
 
-    if (s_tp.following_error) {
-        /* bit13：跟随误差。 */
-        status |= 0x2000u;
-    }
+    /*
+     * G4 硬故障和通信超时未清除时不允许 fault reset。
+     * 跟随误差属于 slave 软件锁存，DS402 接受 fault reset 后再由 Generator_OnDs402FaultReset() 清除。
+     */
+    input->fault_reset_allowed = !hard_fault;
+    input->fault_reaction_done = stop_done;
+    input->quick_stop_done = stop_done;
+}
 
-    return status;
+/*
+ * Generator_FillDs402StatusBits
+ *
+ * 函数作用：
+ * 给统一状态字生成器补充位置/速度模式相关位。
+ *
+ * 参数：
+ * bits : 已由 Ds402_InitStatusBits() 初始化的状态位结构。
+ */
+void Generator_FillDs402StatusBits(DS402_StatusBits *bits)
+{
+    bits->target_reached = s_tp.target_reached;
+    bits->setpoint_ack =
+        (s_tp.setpoint_ack && (int8_t)TestSlave_obj6060 == OPMODE_PROFILE_POSITION);
+    bits->following_error = s_tp.following_error;
+}
+
+/*
+ * Generator_OnDs402FaultReset
+ *
+ * 函数作用：
+ * DS402 fault reset 上升沿被状态机接受后，清除位置/速度模块的软件故障锁存。
+ */
+void Generator_OnDs402FaultReset(void)
+{
+    /*
+     * 这里只清跟随误差这类 slave 内部软锁存。
+     * G4 硬故障和通信超时由各自底层反馈/看门狗清除，不能在这里伪造恢复。
+     */
+    s_tp.following_error = false;
+    s_tp.follow_err_timer_us = 0u;
 }
 
 /* 随着通信故障和跟随故障状态变化，上报或清除 EMCY */
@@ -1171,7 +1368,7 @@ static void Generator_UpdateDemandObjects(int8_t mode)
 {
     if (mode == OPMODE_PROFILE_POSITION) {
         /* 0x6062 需求位置跟随当前规划位置，便于主站观察软件发生器输出。 */
-        TestSlave_obj6062 = (UNS32)TrapProfile_GetPlannedPos(&s_tp);
+        TestSlave_obj6062 = (INTEGER32)TrapProfile_GetPlannedPos(&s_tp);
     }
 
     if (mode == OPMODE_PROFILE_TORQUE) {
@@ -1180,8 +1377,8 @@ static void Generator_UpdateDemandObjects(int8_t mode)
     }
 
     if (mode == OPMODE_PROFILE_VELOCITY) {
-        /* 速度模式下把目标速度镜像到 0x6075。 */
-        TestSlave_obj6075 = (INTEGER16)TrapProfile_GetPlannedVel(&s_tp);
+        /* 速度模式下把目标速度镜像到 0x606B。 */
+        TestSlave_obj606B = (INTEGER32)TrapProfile_GetPlannedVel(&s_tp);
     }
 }
 
@@ -1202,8 +1399,17 @@ void Generator_Init(uint32_t cycle_us)
     s_g4_fault_emcy_active = false;
     s_following_emcy_active = false;
 
-    /* 在第一个定时节拍到来前，先发布一次初始状态字。 */
-    Generator_WriteODU16IfChanged(0x6041, &TestSlave_obj6041, Generator_BuildStatusWord());
+    /*
+     * 在第一个定时节拍到来前，发布一次由 DS402 状态机生成的初始状态字。
+     * 此时状态机仍处于 Not ready to switch on，主站可看到标准上电初态。
+     */
+    {
+        DS402_StatusBits bits;
+
+        Ds402_InitStatusBits(&bits);
+        Generator_FillDs402StatusBits(&bits);
+        Ds402_PublishStatusword(&bits);
+    }
 
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
     TIM_DeInit(TIM3);
@@ -1265,7 +1471,6 @@ void Generator_Run(void)
 
     Generator_UpdateDemandObjects(mode);
     Generator_UpdateEmergencyState();
-    Generator_WriteODU16IfChanged(0x6041, &TestSlave_obj6041, Generator_BuildStatusWord());
 
     command = Generator_BuildCommandFrame();
     should_stream = Generator_ShouldStreamCommand(&command);
@@ -1278,9 +1483,10 @@ void Generator_Run(void)
 }
 
 /* 将解析后的 G4 反馈回写到 CANopen 主站期望的 OD 对象中。 */
-void Generator_OnG4Feedback(uint8_t mode,  int32_t act_main)
+void Generator_OnG4Feedback(uint8_t mode, int16_t act_torque, int32_t act_main)
 {
-    Generator_WriteODU8IfChanged(0x6061, &TestSlave_obj6061, (UNS8)mode);
+    Generator_WriteODI8IfChanged(0x6061, &TestSlave_obj6061, (INTEGER8)mode);
+    Generator_WriteODI16IfChanged(0x6077, &TestSlave_obj6077, (INTEGER16)act_torque);
 
     /*
      * G4 反馈帧里的主反馈字段 act_main 复用了同一组字节：
@@ -1289,10 +1495,10 @@ void Generator_OnG4Feedback(uint8_t mode,  int32_t act_main)
      */
     if (mode == OPMODE_PROFILE_POSITION) {
         /* 位置模式下，表示实际位置。 */
-        Generator_WriteODU32IfChanged(0x6064, &TestSlave_obj6064, (UNS32)act_main);
+        Generator_WriteODI32IfChanged(0x6064, &TestSlave_obj6064, (INTEGER32)act_main);
     } else {
         /* 速度模式下，表示实际速度 */
-        Generator_WriteODU32IfChanged(0x606C, &TestSlave_obj606C, (UNS32)act_main);
+        Generator_WriteODI32IfChanged(0x606C, &TestSlave_obj606C, (INTEGER32)act_main);
     }
 }
 

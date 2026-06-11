@@ -517,75 +517,110 @@ Bit 12: Setpoint Acknowledge (收到新目标)
                        { RO, uint16, sizeof (UNS16), (void*)&TestSlave_obj6041 }
                      };
 
+/* index 0x605A :   Quick stop option code 急停停机策略 */
+                    INTEGER16 TestSlave_obj605A = 2;
+                    subindex TestSlave_Index605A[] =
+                     {
+                       { RW, int16, sizeof (INTEGER16), (void*)&TestSlave_obj605A }
+                     };
+
+/* index 0x605B :   Shutdown option code shutdown 停机策略 */
+                    INTEGER16 TestSlave_obj605B = 0;
+                    subindex TestSlave_Index605B[] =
+                     {
+                       { RW, int16, sizeof (INTEGER16), (void*)&TestSlave_obj605B }
+                     };
+
+/* index 0x605C :   Disable operation option code 去使能停机策略 */
+                    INTEGER16 TestSlave_obj605C = 1;
+                    subindex TestSlave_Index605C[] =
+                     {
+                       { RW, int16, sizeof (INTEGER16), (void*)&TestSlave_obj605C }
+                     };
+
+/* index 0x605D :   Halt option code 暂停停机策略 */
+                    INTEGER16 TestSlave_obj605D = 1;
+                    subindex TestSlave_Index605D[] =
+                     {
+                       { RW, int16, sizeof (INTEGER16), (void*)&TestSlave_obj605D }
+                     };
+
+/* index 0x605E :   Fault reaction option code 故障反应停机策略 */
+                    INTEGER16 TestSlave_obj605E = 2;
+                    subindex TestSlave_Index605E[] =
+                     {
+                       { RW, int16, sizeof (INTEGER16), (void*)&TestSlave_obj605E }
+                     };
+
 /* index 0x6060 :   Modes of operation 工作模式，用于设置驱动器的工作模式 */
 // 1 - Profile Position Mode（轮廓位置模式） 
 // 3 - Profile Velocity Mode（轮廓速度模式）
 // 4 - Profile Torque Mode（轮廓转矩模式）
 // 6 - Homing Mode（回零模式）
-                    UNS8 TestSlave_obj6060 = 0x0;  
+                    INTEGER8 TestSlave_obj6060 = 0x0;
                     ODCallback_t TestSlave_Index6060_callbacks[] = { NULL };
                     subindex TestSlave_Index6060[] = 
                      {
-                       { RW, uint8, sizeof (UNS8), (void*)&TestSlave_obj6060 }
+                       { RW, int8, sizeof (INTEGER8), (void*)&TestSlave_obj6060 }
                      };
 
 /* index 0x6061 :   Modes of operation display 工作模式显示，反映驱动器当前的工作模式 */
-                    UNS8 TestSlave_obj6061 = 0x0;  
+                    INTEGER8 TestSlave_obj6061 = 0x0;
                     subindex TestSlave_Index6061[] = 
                     {
-                      { RO, uint8, sizeof (UNS8), (void*)&TestSlave_obj6061 }
+                      { RO, int8, sizeof (INTEGER8), (void*)&TestSlave_obj6061 }
                     };
 
 /* index 0x607A :   Target position 目标位置，用于设置驱动器的目标位置 */
-                    UNS32 TestSlave_obj607A = 0x0;  
+                    INTEGER32 TestSlave_obj607A = 0x0;
                     ODCallback_t TestSlave_Index607A_callbacks[] = { NULL };
                     subindex TestSlave_Index607A[] = 
                     {
-                      { RW, uint32, sizeof (UNS32), (void*)&TestSlave_obj607A }
+                      { RW, int32, sizeof (INTEGER32), (void*)&TestSlave_obj607A }
                     };
 
 /* index 0x60FF :   Target velocity 目标速度 */
-                    UNS32 TestSlave_obj60FF = 0x0;  
+                    INTEGER32 TestSlave_obj60FF = 0x0;
                     ODCallback_t TestSlave_Index60FF_callbacks[] = { NULL };
                     subindex TestSlave_Index60FF[] =  
                     {
-                      { RW, uint32, sizeof (UNS32), (void*)&TestSlave_obj60FF }
+                      { RW, int32, sizeof (INTEGER32), (void*)&TestSlave_obj60FF }
                     };
 
 /* index 0x6064 :   Actual position 编码器读取的真实位置 */
-                    UNS32 TestSlave_obj6064 = 0x0;  
+                    INTEGER32 TestSlave_obj6064 = 0x0;
                     subindex TestSlave_Index6064[] = 
                     {
-                      { RO, uint32, sizeof (UNS32), (void*)&TestSlave_obj6064 }
+                      { RO, int32, sizeof (INTEGER32), (void*)&TestSlave_obj6064 }
                     };
 
 /* index 0x606C :   Actual velocity 实际速度，反映驱动器当前的速度 */
-                    UNS32 TestSlave_obj606C = 0x0;  
+                    INTEGER32 TestSlave_obj606C = 0x0;
                     subindex TestSlave_Index606C[] = 
                     {
-                      { RO, uint32, sizeof (UNS32), (void*)&TestSlave_obj606C }
+                      { RO, int32, sizeof (INTEGER32), (void*)&TestSlave_obj606C }
                     };
 
 /* index 0x6062 :   Position demand value */  // 位置环内部计算后的需求位置
-                    UNS32 TestSlave_obj6062 = 0x0;  
+                    INTEGER32 TestSlave_obj6062 = 0x0;
                     subindex TestSlave_Index6062[] = 
                     {
-                      { RO, uint32, sizeof (UNS32), (void*)&TestSlave_obj6062 }
+                      { RO, int32, sizeof (INTEGER32), (void*)&TestSlave_obj6062 }
                     };
 
 /* index 0x6071 :   Target torque 目标力矩 */
-                    UNS16 TestSlave_obj6071 = 0x0;  
+                    INTEGER16 TestSlave_obj6071 = 0x0;
                     ODCallback_t TestSlave_Index6071_callbacks[] = { NULL };
                     subindex TestSlave_Index6071[] = 
                     {
-                      { RW, uint16, sizeof (UNS16), (void*)&TestSlave_obj6071 }
+                      { RW, int16, sizeof (INTEGER16), (void*)&TestSlave_obj6071 }
                     };
 
 /* index 0x6077 :   Torque Actual Value 实际力矩 */
-                    UNS16 TestSlave_obj6077 = 0x0;  
+                    INTEGER16 TestSlave_obj6077 = 0x0;
                     subindex TestSlave_Index6077[] = 
                     {
-                      { RO, uint16, sizeof (UNS16), (void*)&TestSlave_obj6077 }
+                      { RO, int16, sizeof (INTEGER16), (void*)&TestSlave_obj6077 }
                     };
 
 /* 0x6087 Torque slope 力矩斜坡 */
@@ -638,12 +673,14 @@ Bit 12: Setpoint Acknowledge (收到新目标)
                     };
 
 /* index 0x607D :   Software position limit 软件位置限位，用于设置驱动器的最小和最大位置限位 */
-                    UNS32 TestSlave_obj607D_min = 0x0;  
-                    UNS32 TestSlave_obj607D_max = 0x7FFFFFFF;  
+                    UNS8 TestSlave_highestSubIndex_obj607D = 2;
+                    INTEGER32 TestSlave_obj607D_min = 0x0;
+                    INTEGER32 TestSlave_obj607D_max = 0x7FFFFFFF;
                     subindex TestSlave_Index607D[] = 
                     {
-                      { RW, uint32, sizeof (UNS32), (void*)&TestSlave_obj607D_min },
-                      { RW, uint32, sizeof (UNS32), (void*)&TestSlave_obj607D_max }
+                      { RO, uint8, sizeof (UNS8), (void*)&TestSlave_highestSubIndex_obj607D },
+                      { RW, int32, sizeof (INTEGER32), (void*)&TestSlave_obj607D_min },
+                      { RW, int32, sizeof (INTEGER32), (void*)&TestSlave_obj607D_max }
                     };
 
 /* index 0x607E :   Polarity 极性，用于设置驱动器的运动方向（转向） */
@@ -669,18 +706,20 @@ Bit 12: Setpoint Acknowledge (收到新目标)
                     };
 
 /* index 0x6098 :   Homing method 回零方式，用于设置驱动器的回零方式 */
-                    UNS8 TestSlave_obj6098 = 0x0;  
+                    INTEGER8 TestSlave_obj6098 = 0x0;
                     ODCallback_t TestSlave_Index6098_callbacks[] = { NULL };
                     subindex TestSlave_Index6098[] =  
                     {
-                      { RW, uint8, sizeof (UNS8), (void*)&TestSlave_obj6098 }
+                      { RW, int8, sizeof (INTEGER8), (void*)&TestSlave_obj6098 }
                     };
 
 /* index 0x6099 :   Homing speeds 回零速度，用于设置驱动器的回零速度参数 */
+                    UNS8 TestSlave_highestSubIndex_obj6099 = 2;
                     UNS32 TestSlave_obj6099_speed1 = 0x0;  // 高速接近回零点
                     UNS32 TestSlave_obj6099_speed2 = 0x0;  // 精确定位
                     subindex TestSlave_Index6099[] = 
                     {
+                      { RO, uint8, sizeof (UNS8), (void*)&TestSlave_highestSubIndex_obj6099 },
                       { RW, uint32, sizeof (UNS32), (void*)&TestSlave_obj6099_speed1 },
                       { RW, uint32, sizeof (UNS32), (void*)&TestSlave_obj6099_speed2 }
                     }; 
@@ -744,12 +783,12 @@ Bit 12: Setpoint Acknowledge (收到新目标)
                       { RW, uint32, sizeof (UNS32), (void*)&TestSlave_obj607F }
                     };
 
-/* 0x6075 Velocity demand value 内部速度需求值反馈 */
+/* 0x606B Velocity demand value 内部速度需求值反馈 */
 // 内部计算出来、准备送入控制的速度需求值
-                  INTEGER16 TestSlave_obj6075 = 0;
-                  subindex TestSlave_Index6075[] =
+                  INTEGER32 TestSlave_obj606B = 0;
+                  subindex TestSlave_Index606B[] =
                   {
-                      { RO, int16, sizeof(INTEGER16), (void*)&TestSlave_obj6075 }
+                      { RO, int32, sizeof(INTEGER32), (void*)&TestSlave_obj606B }
                   };
 
 
@@ -786,6 +825,11 @@ const indextable TestSlave_objdict[] =
   { (subindex*)TestSlave_Index6200,sizeof(TestSlave_Index6200)/sizeof(TestSlave_Index6200[0]), 0x6200},
   { (subindex*)TestSlave_Index6040,sizeof(TestSlave_Index6040)/sizeof(TestSlave_Index6040[0]), 0x6040},
   { (subindex*)TestSlave_Index6041,sizeof(TestSlave_Index6041)/sizeof(TestSlave_Index6041[0]), 0x6041},
+  { (subindex*)TestSlave_Index605A,sizeof(TestSlave_Index605A)/sizeof(TestSlave_Index605A[0]), 0x605A},
+  { (subindex*)TestSlave_Index605B,sizeof(TestSlave_Index605B)/sizeof(TestSlave_Index605B[0]), 0x605B},
+  { (subindex*)TestSlave_Index605C,sizeof(TestSlave_Index605C)/sizeof(TestSlave_Index605C[0]), 0x605C},
+  { (subindex*)TestSlave_Index605D,sizeof(TestSlave_Index605D)/sizeof(TestSlave_Index605D[0]), 0x605D},
+  { (subindex*)TestSlave_Index605E,sizeof(TestSlave_Index605E)/sizeof(TestSlave_Index605E[0]), 0x605E},
   { (subindex*)TestSlave_Index6060,sizeof(TestSlave_Index6060)/sizeof(TestSlave_Index6060[0]), 0x6060},
   { (subindex*)TestSlave_Index6061,sizeof(TestSlave_Index6061)/sizeof(TestSlave_Index6061[0]), 0x6061},
   { (subindex*)TestSlave_Index6062,sizeof(TestSlave_Index6062)/sizeof(TestSlave_Index6062[0]), 0x6062},
@@ -816,7 +860,7 @@ const indextable TestSlave_objdict[] =
   { (subindex*)TestSlave_Index60E1,sizeof(TestSlave_Index60E1)/sizeof(TestSlave_Index60E1[0]), 0x60E1},
   { (subindex*)TestSlave_Index6074,sizeof(TestSlave_Index6074)/sizeof(TestSlave_Index6074[0]), 0x6074},
   { (subindex*)TestSlave_Index607F,sizeof(TestSlave_Index607F)/sizeof(TestSlave_Index607F[0]), 0x607F},
-  { (subindex*)TestSlave_Index6075,sizeof(TestSlave_Index6075)/sizeof(TestSlave_Index6075[0]), 0x6075},
+  { (subindex*)TestSlave_Index606B,sizeof(TestSlave_Index606B)/sizeof(TestSlave_Index606B[0]), 0x606B},
 };
 
 const indextable * TestSlave_scanIndexOD (UNS16 wIndex, UNS32 * errorCode, ODCallback_t **callbacks)
@@ -849,37 +893,42 @@ const indextable * TestSlave_scanIndexOD (UNS16 wIndex, UNS32 * errorCode, ODCal
     case 0x6200: i = 22; break;
     case 0x6040: i = 23; *callbacks = TestSlave_Index6040_callbacks; break; // ControlWord
     case 0x6041: i = 24; break;
-    case 0x6060: i = 25; *callbacks = TestSlave_Index6060_callbacks; break; // Modes of operation
-    case 0x6061: i = 26; break;
-    case 0x6062: i = 27; break;
-    case 0x6064: i = 28; break;
-    case 0x6065: i = 29; break;
-    case 0x6066: i = 30; break;
-    case 0x606C: i = 31; break;
-    case 0x6071: i = 32; *callbacks = TestSlave_Index6071_callbacks; break; // Target Torque
-    case 0x6077: i = 33; break;
-    case 0x6087: i = 34; break;
-    case 0x607A: i = 35; *callbacks = TestSlave_Index607A_callbacks; break; // Target Position
-    case 0x607D: i = 36; break;
-    case 0x607E: i = 37; break;
-    case 0x6080: i = 38; break;
-    case 0x6081: i = 39; *callbacks = TestSlave_Index6081_callbacks; break; // Profile Velocity
-    case 0x6083: i = 40; break;
-    case 0x6084: i = 41; break;
-    case 0x6098: i = 42; *callbacks = TestSlave_Index6098_callbacks; break; // Homing Method
-    case 0x6099: i = 43; break;
-    case 0x609A: i = 44; break;
-    case 0x60C0: i = 45; break;
-    case 0x60C1: i = 46; break;
-    case 0x60FF: i = 47; *callbacks = TestSlave_Index60FF_callbacks; break; // Target Velocity
-    case 0x6085: i = 48; break;
-    case 0x6073: i = 49; break;
-    case 0x6072: i = 50; break;
-    case 0x60E0: i = 51; break;
-    case 0x60E1: i = 52; break;
-    case 0x6074: i = 53; break;
-    case 0x607F: i = 54; break;
-    case 0x6075: i = 55; break;
+    case 0x605A: i = 25; break;
+    case 0x605B: i = 26; break;
+    case 0x605C: i = 27; break;
+    case 0x605D: i = 28; break;
+    case 0x605E: i = 29; break;
+    case 0x6060: i = 30; *callbacks = TestSlave_Index6060_callbacks; break; // Modes of operation
+    case 0x6061: i = 31; break;
+    case 0x6062: i = 32; break;
+    case 0x6064: i = 33; break;
+    case 0x6065: i = 34; break;
+    case 0x6066: i = 35; break;
+    case 0x606C: i = 36; break;
+    case 0x6071: i = 37; *callbacks = TestSlave_Index6071_callbacks; break; // Target Torque
+    case 0x6077: i = 38; break;
+    case 0x6087: i = 39; break;
+    case 0x607A: i = 40; *callbacks = TestSlave_Index607A_callbacks; break; // Target Position
+    case 0x607D: i = 41; break;
+    case 0x607E: i = 42; break;
+    case 0x6080: i = 43; break;
+    case 0x6081: i = 44; *callbacks = TestSlave_Index6081_callbacks; break; // Profile Velocity
+    case 0x6083: i = 45; break;
+    case 0x6084: i = 46; break;
+    case 0x6098: i = 47; *callbacks = TestSlave_Index6098_callbacks; break; // Homing Method
+    case 0x6099: i = 48; break;
+    case 0x609A: i = 49; break;
+    case 0x60C0: i = 50; break;
+    case 0x60C1: i = 51; break;
+    case 0x60FF: i = 52; *callbacks = TestSlave_Index60FF_callbacks; break; // Target Velocity
+    case 0x6085: i = 53; break;
+    case 0x6073: i = 54; break;
+    case 0x6072: i = 55; break;
+    case 0x60E0: i = 56; break;
+    case 0x60E1: i = 57; break;
+    case 0x6074: i = 58; break;
+    case 0x607F: i = 59; break;
+    case 0x606B: i = 60; break;
 		default:
 			*errorCode = OD_NO_SUCH_OBJECT;
 			return NULL;

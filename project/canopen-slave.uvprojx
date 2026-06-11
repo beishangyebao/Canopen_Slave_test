@@ -619,6 +619,16 @@
               <FileType>1</FileType>
               <FilePath>..\canopen\objdict\TestSlave.c</FilePath>
             </File>
+            <File>
+              <FileName>ds402_state.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\canopen\objdict\ds402_state.h</FilePath>
+            </File>
+            <File>
+              <FileName>ds402_state.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\canopen\objdict\ds402_state.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -653,6 +663,16 @@
               <FileName>generator.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\user\generator.c</FilePath>
+            </File>
+            <File>
+              <FileName>torque.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\user\torque.h</FilePath>
+            </File>
+            <File>
+              <FileName>torque.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\user\torque.c</FilePath>
             </File>
             <File>
               <FileName>g4_motor.h</FileName>

@@ -3,20 +3,20 @@
         {
             "name": "canopen-slave",
             "includePath": [
-                "c:\\Users\\Lenovo\\Desktop\\课题相关\\can\\从站\\canopen-slave\\core",
-                "c:\\Users\\Lenovo\\Desktop\\课题相关\\can\\从站\\canopen-slave\\lib\\inc",
-                "c:\\Users\\Lenovo\\Desktop\\课题相关\\can\\从站\\canopen-slave\\user",
-                "c:\\Users\\Lenovo\\Desktop\\课题相关\\can\\从站\\canopen-slave\\bsp",
-                "c:\\Users\\Lenovo\\Desktop\\课题相关\\can\\从站\\canopen-slave\\canopen",
-                "c:\\Users\\Lenovo\\Desktop\\课题相关\\can\\从站\\canopen-slave\\canopen\\include",
-                "c:\\Users\\Lenovo\\Desktop\\课题相关\\can\\从站\\canopen-slave\\canopen\\include\\stm32f103",
-                "c:\\Users\\Lenovo\\Desktop\\课题相关\\can\\从站\\canopen-slave\\canopen\\objdict",
-                "c:\\Users\\Lenovo\\Desktop\\课题相关\\can\\从站\\canopen-slave\\canopen\\ds401",
+                "c:\\Users\\Lenovo\\Desktop\\课题相关\\主-从-控\\canopen-slave\\core",
+                "c:\\Users\\Lenovo\\Desktop\\课题相关\\主-从-控\\canopen-slave\\lib\\inc",
+                "c:\\Users\\Lenovo\\Desktop\\课题相关\\主-从-控\\canopen-slave\\user",
+                "c:\\Users\\Lenovo\\Desktop\\课题相关\\主-从-控\\canopen-slave\\bsp",
+                "c:\\Users\\Lenovo\\Desktop\\课题相关\\主-从-控\\canopen-slave\\canopen",
+                "c:\\Users\\Lenovo\\Desktop\\课题相关\\主-从-控\\canopen-slave\\canopen\\include",
+                "c:\\Users\\Lenovo\\Desktop\\课题相关\\主-从-控\\canopen-slave\\canopen\\include\\stm32f103",
+                "c:\\Users\\Lenovo\\Desktop\\课题相关\\主-从-控\\canopen-slave\\canopen\\objdict",
+                "c:\\Users\\Lenovo\\Desktop\\课题相关\\主-从-控\\canopen-slave\\canopen\\ds401",
                 "D:\\keil\\ARM\\ARMCC\\include",
                 "D:\\keil\\ARM\\ARMCC\\include\\rw",
-                "c:\\Users\\Lenovo\\Desktop\\课题相关\\can\\从站\\canopen-slave\\core\\startup",
-                "c:\\Users\\Lenovo\\Desktop\\课题相关\\can\\从站\\canopen-slave\\lib\\src",
-                "c:\\Users\\Lenovo\\Desktop\\课题相关\\can\\从站\\canopen-slave\\canopen\\src"
+                "c:\\Users\\Lenovo\\Desktop\\课题相关\\主-从-控\\canopen-slave\\core\\startup",
+                "c:\\Users\\Lenovo\\Desktop\\课题相关\\主-从-控\\canopen-slave\\lib\\src",
+                "c:\\Users\\Lenovo\\Desktop\\课题相关\\主-从-控\\canopen-slave\\canopen\\src"
             ],
             "defines": [
                 "STM32F10X_MD",

@@ -5,18 +5,26 @@
 #include "canfestival.h"
 #include "generator.h"
 #include "stm32f10x.h"
+#include "torque.h"
 
 #include <string.h>
 
 /* CAN1 底层初始化与中断，同时处理 CanFestival 报文和 G4 反馈。 */
 
 #define ID_G4_FEEDBACK 0x011u
+#define BSP_CAN_OPMODE_PROFILE_TORQUE 4
 
 extern CO_Data TestSlave_Data;
 
 volatile uint32_t g_last_g4_heartbeat_time;
 
 extern volatile uint8_t g_g4_fault_status;
+
+/*
+ * 0x6060 Modes of operation 由 CanFestival 对象字典生成。
+ * CAN 接收中断只读取它来处理模式切换瞬间的 G4 反馈归属，不改对象字典本身。
+ */
+extern UNS8 TestSlave_obj6060;
 
 /* 使能 GPIO/AFIO 时钟后，配置 PA11/PA12 为 CAN 收发引脚。 */
 static void gpio_config(void)
@@ -104,6 +112,7 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
     if (message.StdId == ID_G4_FEEDBACK) {
         uint8_t status_byte;
         uint8_t mode;
+        int16_t act_torque;
         int32_t act_main;
 
         /* 每收到一帧有效反馈，都先刷新应用层的通信监督状态。 */
@@ -114,16 +123,31 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
         g_g4_fault_status = (status_byte & 0x01u) ? 1u : 0u;
 
         /*
-         * 当前从站只使用 mode 和主反馈值 act_main。
-         * 力矩控制不在这一层闭环，因此 Byte2~3 的实际力矩字段不参与本地控制链。
+         * Byte2~3 是 control 反馈的实际转矩，单位为额定转矩千分比。
+         * Byte4~7 是主反馈值：位置模式下为实际位置，其余模式下为实际速度。
          */
         mode = message.Data[1];
+        act_torque = (int16_t)(message.Data[2] |
+                               (message.Data[3] << 8));
         act_main = (int32_t)(message.Data[4] |
                              (message.Data[5] << 8) |
                              (message.Data[6] << 16) |
                              (message.Data[7] << 24));
 
-        Generator_OnG4Feedback(mode, act_main);
+        /*
+         * G4 反馈按模式分发：
+         * - 转矩模式由 torque.c 回写 0x6077/0x606C；
+         * - 位置、速度和回零模式仍由 generator.c 回写 0x6064 或 0x606C。
+         *
+         * 同时检查 G4 回显 mode 和本地 0x6060，是为了覆盖模式切换瞬间：
+         * 如果本地已经进入转矩模式但 G4 还回显上一帧模式，转矩对象仍应由 torque.c 接管。
+         */
+        if ((mode == BSP_CAN_OPMODE_PROFILE_TORQUE) ||
+            ((int8_t)TestSlave_obj6060 == BSP_CAN_OPMODE_PROFILE_TORQUE)) {
+            Torque_OnG4Feedback(mode, act_torque, act_main);
+        } else {
+            Generator_OnG4Feedback(mode, act_torque, act_main);
+        }
         return;
     }
 

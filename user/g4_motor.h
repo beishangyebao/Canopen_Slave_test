@@ -16,6 +16,12 @@ typedef struct {
     int8_t mode;
     uint8_t control_flags;
     int8_t homing_method;
+    /*
+     * target_value 的含义由 mode 决定：
+     * - mode=1：slave 位置外环输出的速度给定，单位 rpm。
+     * - mode=3：Profile Velocity 的速度给定，单位 rpm。
+     * - mode=4：Profile Torque 的转矩需求，单位为额定转矩千分比。
+     */
     int32_t target_value;
 } G4_CommandFrame;
 

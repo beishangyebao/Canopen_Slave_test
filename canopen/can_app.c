@@ -9,7 +9,7 @@
 extern CO_Data TestSlave_Data;
 extern uint32_t GetTick(void);
 extern volatile uint32_t g_last_g4_heartbeat_time;
-extern UNS8 TestSlave_obj6061;
+extern INTEGER8 TestSlave_obj6061;
 
 volatile uint8_t g_g4_comm_timeout = 0u;
 volatile uint8_t g_g4_feedback_seen = 0u;
@@ -54,7 +54,7 @@ static uint32_t s_g4_watchdog_start_time = 0u;
  * 而是走从站内部专用的 writeLocalDict(..., checkAccess = 0)。
  * 这样既保持了对象对主站只读，又允许从站把自身状态写回 OD。
  */
-static void CAN_App_WriteSlaveProducedODU8IfChanged(UNS16 index, UNS8 *object, UNS8 value)
+static void CAN_App_WriteSlaveProducedODI8IfChanged(UNS16 index, INTEGER8 *object, INTEGER8 value)
 {
     if (*object != value) {
         UNS32 size = sizeof(value);
@@ -65,11 +65,11 @@ static void CAN_App_WriteSlaveProducedODU8IfChanged(UNS16 index, UNS8 *object, U
 /* 工作模式更新后，把相同值同步到 0x6061。 */
 static UNS32 OnOperationModeUpdate(CO_Data* d, const indextable *table, UNS8 bSubindex)
 {
-    UNS8 mode = *(UNS8*)table->pSubindex[bSubindex].pObject;
+    INTEGER8 mode = *(INTEGER8*)table->pSubindex[bSubindex].pObject;
 
     (void)d;
 
-    CAN_App_WriteSlaveProducedODU8IfChanged(0x6061, &TestSlave_obj6061, mode);
+    CAN_App_WriteSlaveProducedODI8IfChanged(0x6061, &TestSlave_obj6061, mode);
     return 0;
 }
 
