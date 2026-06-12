@@ -489,28 +489,51 @@ $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
                      };
 
 /* index 0x6040 :   Controlword */
+/*
+Bit 0  Switch on 命令位
+Bit 1  Enable voltage 命令位
+Bit 2  Quick stop：1 正常，0 请求急停
+Bit 3  Enable operation 命令位
+Bit 4  New set-point / 回零触发
+Bit 5  当前未使用
+Bit 6  Relative move 相对位置标志
+Bit 7  Fault reset 上升沿
+Bit 8  Halt 暂停
+Bit 9  当前未使用
+Bit 10 当前未使用
+Bit 11 当前未使用
+Bit 12 当前未使用
+Bit 13 当前未使用
+Bit 14 当前未使用
+Bit 15 当前未使用
+*/
                     UNS16 TestSlave_obj6040 = 0x0;  /* 初始值 */
                     ODCallback_t TestSlave_Index6040_callbacks[] = { NULL };
                     subindex TestSlave_Index6040[] = 
                      {
                        { RW, uint16, sizeof (UNS16), (void*)&TestSlave_obj6040 }
                      };
-                    
-
-/*
-Bit 0	 Ready to Switch On	1: 准备好开机
-Bit 1	 Switched On		1: 已开机
-Bit 2	 Operation Enabled	1: 允许运行
-Bit 3	 Fault	1: 故障状态
-Bit 4	 Voltage Enabled 1: 母线电压正常
-Bit 5	 Quick Stop			0: 正在急停  1: 正常
-Bit 6	 Switch On Disabled 1: 禁止开机
-Bit 9 (Remote) 正常 1: 表示远程控制
-Bit 10: Target Reached (到达位置/速度为0)
-Bit 12: Setpoint Acknowledge (收到新目标)
-*/
+                     
 
 /* index 0x6041 :   Statusword 状态字，反映驱动器当前状态 */
+/*
+Bit 0  Ready to switch on
+Bit 1  Switched on
+Bit 2  Operation enabled
+Bit 3  Fault
+Bit 4  Voltage enabled：当前用 G4 在线近似
+Bit 5  Quick stop：1 正常，0 急停中
+Bit 6  Switch on disabled
+Bit 7  Warning：当前未使用
+Bit 8  当前未使用
+Bit 9  Remote：NMT Operational
+Bit 10 Target reached
+Bit 11 Internal limit active：当前未使用
+Bit 12 Set-point acknowledge
+Bit 13 Following error
+Bit 14 当前未使用
+Bit 15 当前未使用
+*/
                     UNS16 TestSlave_obj6041 = 0x0;  
                     subindex TestSlave_Index6041[] = 
                      {
