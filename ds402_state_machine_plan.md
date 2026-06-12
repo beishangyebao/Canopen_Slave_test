@@ -20,7 +20,7 @@
 
 - slave 当前确实是“类 DS402 状态字”：`generator.c` 和 `torque.c` 分别用 `0x0237/0x0231/0x0208` 等模板拼 `0x6041`，没有统一的 DS402 PDS 状态机。
 - master 和 slave 的 PDO 布局是匹配的：RPDO1 为 `6040 + 6060 + 607A`，RPDO2 为 `60FF + 6071`，TPDO1 为 `6041 + 606C`，TPDO2 为 `6064 + 6077`。标准化改造保持这套 PDO 映射不变，改变的是 `6040/6041` 的行为语义和主站响应流程。
-- 本次修订明确要求：slave 上电后的 DS402 初始状态必须是 `NOT_READY_TO_SWITCH_ON`。即使当前没有母线预充、电源检测、驱动自检，也不能把初态简化为 `SWITCH_ON_DISABLED`。
+- slave 上电后的 DS402 初始状态必须是 `NOT_READY_TO_SWITCH_ON`。即使当前没有母线预充、电源检测、驱动自检，也不能把初态简化为 `SWITCH_ON_DISABLED`
 - master 必须从“连续盲发 `0x0006 -> 0x0007 -> 0x000F`”改为“写一步控制字、等待对应状态字、再写下一步控制字”。
 - slave 必须实现故障反应、故障锁存和 fault reset 上升沿；master 必须实现状态字解析、状态等待和 fault reset 上升沿命令。
 - 本文档中的状态字数值只应作为“基础状态位”参考。叠加 bit4、bit5、bit9、bit10、bit12、bit13 后，主站测试应使用 mask 判断状态，而不是完整等值比较。
