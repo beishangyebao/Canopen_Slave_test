@@ -24,7 +24,7 @@ extern volatile uint8_t g_g4_fault_status;
  * 0x6060 Modes of operation 由 CanFestival 对象字典生成。
  * CAN 接收中断只读取它来处理模式切换瞬间的 G4 反馈归属，不改对象字典本身。
  */
-extern UNS8 TestSlave_obj6060;
+extern INTEGER8 TestSlave_obj6060;
 
 /* 使能 GPIO/AFIO 时钟后，配置 PA11/PA12 为 CAN 收发引脚。 */
 static void gpio_config(void)
@@ -112,6 +112,8 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
     if (message.StdId == ID_G4_FEEDBACK) {
         uint8_t status_byte;
         uint8_t mode;
+        uint16_t raw_torque;
+        uint32_t raw_main;
         int16_t act_torque;
         int32_t act_main;
 
@@ -127,12 +129,18 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
          * Byte4~7 是主反馈值：位置模式下为实际位置，其余模式下为实际速度。
          */
         mode = message.Data[1];
-        act_torque = (int16_t)(message.Data[2] |
-                               (message.Data[3] << 8));
-        act_main = (int32_t)(message.Data[4] |
-                             (message.Data[5] << 8) |
-                             (message.Data[6] << 16) |
-                             (message.Data[7] << 24));
+        raw_torque = (uint16_t)message.Data[2] |
+                     ((uint16_t)message.Data[3] << 8);
+        raw_main = (uint32_t)message.Data[4] |
+                   ((uint32_t)message.Data[5] << 8) |
+                   ((uint32_t)message.Data[6] << 16) |
+                   ((uint32_t)message.Data[7] << 24);
+        act_torque = (raw_torque & 0x8000u) ?
+            (int16_t)((int32_t)raw_torque - 0x10000L) :
+            (int16_t)raw_torque;
+        act_main = (raw_main & 0x80000000UL) ?
+            ((int32_t)(raw_main - 0x80000000UL) - 2147483647L - 1L) :
+            (int32_t)raw_main;
 
         /*
          * G4 反馈按模式分发：

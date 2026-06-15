@@ -499,13 +499,7 @@ Bit 5  当前未使用
 Bit 6  Relative move 相对位置标志
 Bit 7  Fault reset 上升沿
 Bit 8  Halt 暂停
-Bit 9  当前未使用
-Bit 10 当前未使用
-Bit 11 当前未使用
-Bit 12 当前未使用
-Bit 13 当前未使用
-Bit 14 当前未使用
-Bit 15 当前未使用
+Bit 9 - 15 当前未使用
 */
                     UNS16 TestSlave_obj6040 = 0x0;  /* 初始值 */
                     ODCallback_t TestSlave_Index6040_callbacks[] = { NULL };
@@ -541,34 +535,63 @@ Bit 15 当前未使用
                      };
 
 /* index 0x605A :   Quick stop option code 急停停机策略 */
+/*
+ * 0：立即停止 切换到 Switch On Disabled 
+ * 1：使用正常减速斜坡制动，切换到 Switch On Disabled 
+ * 2：使用快停斜坡（ 0x6085 ）制动  切换到 Switch On Disabled 
+ * 5：使用正常减速斜坡（ 0x6084 ）制动，停机后仍保持在 Quick Stop Active 
+ * 6：使用快停斜坡（ 0x6085 ）制动，停机后仍保持在 Quick Stop Active 
+ */
                     INTEGER16 TestSlave_obj605A = 2;
                     subindex TestSlave_Index605A[] =
                      {
                        { RW, int16, sizeof (INTEGER16), (void*)&TestSlave_obj605A }
                      };
 
-/* index 0x605B :   Shutdown option code shutdown 停机策略 */
-                    INTEGER16 TestSlave_obj605B = 0;
+/* index 0x605B :   Shutdown option code shutdown 停机策略 
+ * OPERATION ENABLE ⇒ READY TO SWITCH ON
+ * 0：立即停止 切换到  READY TO SWITCH ON
+ * 1：使用正常减速斜坡（ 0x6084 ）制动 切换到 READY TO SWITCH ON
+ * 正常停机使用
+ */
+                    INTEGER16 TestSlave_obj605B = 1;
                     subindex TestSlave_Index605B[] =
                      {
                        { RW, int16, sizeof (INTEGER16), (void*)&TestSlave_obj605B }
                      };
 
-/* index 0x605C :   Disable operation option code 去使能停机策略 */
+/* index 0x605C :   Disable operation option code 去使能停机策略 
+ * OPERATION ENABLE ⇒ Switched on
+ * 0：立即停止 切换到  Switched on 状态
+ * 1：使用正常减速斜坡（ 0x6084 ）制动 切换到 Switched on
+ * 一般是是在切换模式前使用
+*/
                     INTEGER16 TestSlave_obj605C = 1;
                     subindex TestSlave_Index605C[] =
                      {
                        { RW, int16, sizeof (INTEGER16), (void*)&TestSlave_obj605C }
                      };
 
-/* index 0x605D :   Halt option code 暂停停机策略 */
+/* index 0x605D :   Halt option code 暂停停机策略 
+ * 仅在控制字 0x6040h 的 Bit 8 被置位时生效
+ * 1：使用正常减速斜坡（ 0x6084 ）制动，并保持在 Operation Enabled 
+ * 2：使用快停斜坡（ 0x6085 ）制动，并保持在 Operation Enabled 
+ * 3：依电流限幅减速，并保持在 Operation Enabled 
+ * 4：依电压限幅减速，并保持在 Operation Enabled 
+ */
                     INTEGER16 TestSlave_obj605D = 1;
                     subindex TestSlave_Index605D[] =
                      {
                        { RW, int16, sizeof (INTEGER16), (void*)&TestSlave_obj605D }
                      };
 
-/* index 0x605E :   Fault reaction option code 故障反应停机策略 */
+/* index 0x605E :   Fault reaction option code 故障反应停机策略 
+ * 0：禁止传动功能，电机自由停车（切断励磁）
+ * 1：使用正常减速斜坡制动
+ * 2：使用快停斜坡（Quick Stop Ramp）制动
+ * 3：依电流限幅减速
+ * 4：依电压限幅减速
+ */
                     INTEGER16 TestSlave_obj605E = 2;
                     subindex TestSlave_Index605E[] =
                      {
@@ -610,7 +633,10 @@ Bit 15 当前未使用
                       { RW, int32, sizeof (INTEGER32), (void*)&TestSlave_obj60FF }
                     };
 
-/* index 0x6064 :   Actual position 编码器读取的真实位置 */
+/* 
+ * index 0x6064 :   Actual position 
+ * 经过方向、单位换算、零点偏移、机械比例等处理后的位置实际值
+ */
                     INTEGER32 TestSlave_obj6064 = 0x0;
                     subindex TestSlave_Index6064[] = 
                     {
@@ -624,7 +650,7 @@ Bit 15 当前未使用
                       { RO, int32, sizeof (INTEGER32), (void*)&TestSlave_obj606C }
                     };
 
-/* index 0x6062 :   Position demand value */  // 位置环内部计算后的需求位置
+/* index 0x6062 :   Position demand value 位置环内部计算后的需求位置 */  
                     INTEGER32 TestSlave_obj6062 = 0x0;
                     subindex TestSlave_Index6062[] = 
                     {
@@ -667,21 +693,10 @@ Bit 15 当前未使用
                       { RW, uint32, sizeof (UNS32), (void*)&TestSlave_obj6084 }
                     };
 
-/* index 0x60C0 :   Interpolation time period */  // 插补时间周期，用于设置驱动器插补运算的时间周期
-                    UNS8 TestSlave_obj60C0 = 0x0; 
-                    subindex TestSlave_Index60C0[] = 
-                    {
-                      { RW, uint8, sizeof (UNS8), (void*)&TestSlave_obj60C0 }
-                    };
-
-/* index 0x60C1 :   Interpolation time index 插补时间索引，用于设置驱动器插补运算的时间索引 */
-                    UNS8 TestSlave_obj60C1 = 0x0; 
-                    subindex TestSlave_Index60C1[] = 
-                    {
-                      { RW, uint8, sizeof (UNS8), (void*)&TestSlave_obj60C1 }
-                    };
-
-/* index 0x6065 :   Following error window 跟随误差窗口，用于设置驱动器允许的最大跟随误差，即实际位置”与目标位置之间允许的最大偏差值 */
+/* 
+ * index 0x6065 :   Following error window 
+ * 跟随误差窗口：判断 position demand value（0x6062） 与 Actual position （0x6064） 的偏差是否超限
+ */
                     UNS32 TestSlave_obj6065 = 0x7FFFFFFF;  
                     subindex TestSlave_Index6065[] = 
                     {
@@ -706,8 +721,21 @@ Bit 15 当前未使用
                       { RW, int32, sizeof (INTEGER32), (void*)&TestSlave_obj607D_max }
                     };
 
-/* index 0x607E :   Polarity 极性，用于设置驱动器的运动方向（转向） */
-                    UNS8 TestSlave_obj607E = 0x0;  // 0：正方向，1：负方向
+/* index 0x607E :   Polarity 极性，用于设置驱动器的运动方向（转向） 
+ *  Bit 6：Velocity polarity
+ *        0 = 不反转速度相关量
+ *        1 = 反转速度相关量
+ * Bit 7：Position polarity
+ *        0 = 不反转位置相关量
+ *        1 = 反转位置相关量
+ *
+ * 常见取值：
+ * 0x00：不反转
+ * 0x40：速度极性反转
+ * 0x80：位置极性反转
+ * 0xC0：速度和位置极性都反转
+ */
+                    UNS8 TestSlave_obj607E = 0x0; 
                     subindex TestSlave_Index607E[] = 
                     {
                       { RW, uint8, sizeof (UNS8), (void*)&TestSlave_obj607E }
@@ -720,7 +748,7 @@ Bit 15 当前未使用
                       { RW, uint32, sizeof (UNS32), (void*)&TestSlave_obj6080 }
                     };
 
-/* index 0x6081 :   Profile velocity 轮廓速度设定值，即位置模式下的最大速度 */
+/* index 0x6081 :   Profile velocity 轮廓速度设定值，即位置模式下的速度 */
                     UNS32 TestSlave_obj6081 = 3000;  
                     ODCallback_t TestSlave_Index6081_callbacks[] = { NULL };
                     subindex TestSlave_Index6081[] = 
@@ -776,19 +804,18 @@ Bit 15 当前未使用
                     };
 
 
-
 /* 0x60E0 Positive torque limit value 正方向最大转矩 */
-                    INTEGER16 TestSlave_obj60E0 = 0;
+                    UNS16  TestSlave_obj60E0 = 0;
                     subindex TestSlave_Index60E0[] =
                     {
-                        { RW, int16, sizeof(INTEGER16), (void*)&TestSlave_obj60E0 }
+                        { RW, uint16, sizeof(UNS16), (void*)&TestSlave_obj60E0 }
                     };
 
 /* 0x60E1 Negative torque limit value 负方向最大转矩 */
-                    INTEGER16 TestSlave_obj60E1 = 0;
+                    UNS16  TestSlave_obj60E1 = 0;
                     subindex TestSlave_Index60E1[] =
                     {
-                        { RW, int16, sizeof(INTEGER16), (void*)&TestSlave_obj60E1 }
+                        { RW, uint16, sizeof(UNS16), (void*)&TestSlave_obj60E1 }
                     };
 
 /* 0x6074 Torque demand value 内部转矩需求值反馈 */
@@ -800,7 +827,7 @@ Bit 15 当前未使用
                     };
 
 /* index 0x607F :   Max Profile Velocity 最大轮廓速度 */
-                    UNS32 TestSlave_obj607F = 5000;  // 初始值示例：3000（单位取决于配置，通常是 rpm 或 inc/s）
+                    UNS32 TestSlave_obj607F = 5000;  // 初始值示例：3000（单位取决于配置，通常是 rpm ）
                     subindex TestSlave_Index607F[] = 
                     {
                       { RW, uint32, sizeof (UNS32), (void*)&TestSlave_obj607F }
@@ -873,8 +900,6 @@ const indextable TestSlave_objdict[] =
   { (subindex*)TestSlave_Index6098,sizeof(TestSlave_Index6098)/sizeof(TestSlave_Index6098[0]), 0x6098},
   { (subindex*)TestSlave_Index6099,sizeof(TestSlave_Index6099)/sizeof(TestSlave_Index6099[0]), 0x6099},
   { (subindex*)TestSlave_Index609A,sizeof(TestSlave_Index609A)/sizeof(TestSlave_Index609A[0]), 0x609A},
-  { (subindex*)TestSlave_Index60C0,sizeof(TestSlave_Index60C0)/sizeof(TestSlave_Index60C0[0]), 0x60C0},
-  { (subindex*)TestSlave_Index60C1,sizeof(TestSlave_Index60C1)/sizeof(TestSlave_Index60C1[0]), 0x60C1},
   { (subindex*)TestSlave_Index60FF,sizeof(TestSlave_Index60FF)/sizeof(TestSlave_Index60FF[0]), 0x60FF},
   { (subindex*)TestSlave_Index6085,sizeof(TestSlave_Index6085)/sizeof(TestSlave_Index6085[0]), 0x6085},
   { (subindex*)TestSlave_Index6073,sizeof(TestSlave_Index6073)/sizeof(TestSlave_Index6073[0]), 0x6073},
@@ -941,17 +966,15 @@ const indextable * TestSlave_scanIndexOD (UNS16 wIndex, UNS32 * errorCode, ODCal
     case 0x6098: i = 47; *callbacks = TestSlave_Index6098_callbacks; break; // Homing Method
     case 0x6099: i = 48; break;
     case 0x609A: i = 49; break;
-    case 0x60C0: i = 50; break;
-    case 0x60C1: i = 51; break;
-    case 0x60FF: i = 52; *callbacks = TestSlave_Index60FF_callbacks; break; // Target Velocity
-    case 0x6085: i = 53; break;
-    case 0x6073: i = 54; break;
-    case 0x6072: i = 55; break;
-    case 0x60E0: i = 56; break;
-    case 0x60E1: i = 57; break;
-    case 0x6074: i = 58; break;
-    case 0x607F: i = 59; break;
-    case 0x606B: i = 60; break;
+    case 0x60FF: i = 50; *callbacks = TestSlave_Index60FF_callbacks; break; // Target Velocity
+    case 0x6085: i = 51; break;
+    case 0x6073: i = 52; break;
+    case 0x6072: i = 53; break;
+    case 0x60E0: i = 54; break;
+    case 0x60E1: i = 55; break;
+    case 0x6074: i = 56; break;
+    case 0x607F: i = 57; break;
+    case 0x606B: i = 58; break;
 		default:
 			*errorCode = OD_NO_SUCH_OBJECT;
 			return NULL;

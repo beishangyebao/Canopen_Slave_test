@@ -16,6 +16,7 @@ volatile uint8_t g_g4_fault_status;
 void Driver_Send_CommandFrame(const G4_CommandFrame *command)
 {
     Message msg;
+    uint32_t raw_target;
 
     /* 该 ID 固定用于“从站 -> G4 驱动”的实时控制帧。 */
     msg.cob_id = ID_G4_CMD;
@@ -31,10 +32,11 @@ void Driver_Send_CommandFrame(const G4_CommandFrame *command)
      * 第 4~7 字节放 32 位目标值，按小端字节序拆分。
      * mode=4 时该字段是转矩千分比，不在 slave 侧换算成电流。
      */
-    msg.data[4] = (uint8_t)(command->target_value & 0xFF);
-    msg.data[5] = (uint8_t)((command->target_value >> 8) & 0xFF);
-    msg.data[6] = (uint8_t)((command->target_value >> 16) & 0xFF);
-    msg.data[7] = (uint8_t)((command->target_value >> 24) & 0xFF);
+    raw_target = (uint32_t)command->target_value;
+    msg.data[4] = (uint8_t)(raw_target & 0xFFu);
+    msg.data[5] = (uint8_t)((raw_target >> 8) & 0xFFu);
+    msg.data[6] = (uint8_t)((raw_target >> 16) & 0xFFu);
+    msg.data[7] = (uint8_t)((raw_target >> 24) & 0xFFu);
 
     /* 最终通过底层 canSend 发到总线上。 */
     canSend(0, &msg);
