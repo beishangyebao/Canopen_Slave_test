@@ -490,18 +490,19 @@ $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 /* index 0x6040 :   Controlword */
 /*
-Bit 0  Switch on 命令位
-Bit 1  Enable voltage 命令位
-Bit 2  Quick stop：1 正常，0 请求急停
-Bit 3  Enable operation 命令位
-Bit 4  New set-point / 回零触发
-Bit 5  当前未使用
-Bit 6  Relative move 相对位置标志
-Bit 7  Fault reset 上升沿
-Bit 8  Halt 暂停
-Bit 9 - 15 当前未使用
-*/
-                    UNS16 TestSlave_obj6040 = 0x0;  /* 初始值 */
+ * 0-3 状态机命令位  7 故障复位  其余常用于模式特定的功能
+ * Bit 0  Switch on 命令位
+ * Bit 1  Enable voltage 命令位
+ * Bit 2  Quick stop：1 正常，0 请求急停
+ * Bit 3  Enable operation 命令位
+ * Bit 4  New set-point / 回零触发
+ * Bit 5  当前未使用
+ * Bit 6  Relative move 相对位置标志
+ * Bit 7  Fault reset 故障复位（上升沿）
+ * Bit 8  Halt 暂停
+ * Bit 9 - 15 当前未使用
+ */
+                    UNS16 TestSlave_obj6040 = 0x0;  
                     ODCallback_t TestSlave_Index6040_callbacks[] = { NULL };
                     subindex TestSlave_Index6040[] = 
                      {
@@ -511,22 +512,22 @@ Bit 9 - 15 当前未使用
 
 /* index 0x6041 :   Statusword 状态字，反映驱动器当前状态 */
 /*
-Bit 0  Ready to switch on
-Bit 1  Switched on
-Bit 2  Operation enabled
-Bit 3  Fault
-Bit 4  Voltage enabled：当前用 G4 在线近似
-Bit 5  Quick stop：1 正常，0 急停中
-Bit 6  Switch on disabled
-Bit 7  Warning：当前未使用
-Bit 8  当前未使用
-Bit 9  Remote：NMT Operational
-Bit 10 Target reached
-Bit 11 Internal limit active：当前未使用
-Bit 12 Set-point acknowledge
-Bit 13 Following error
-Bit 14 当前未使用
-Bit 15 当前未使用
+ * Bit 0  Ready to switch on
+ * Bit 1  Switched on
+ * Bit 2  Operation enabled
+ * Bit 3  Fault
+ * Bit 4  Voltage enabled：当前用 G4 在线近似
+ * Bit 5  Quick stop：1 正常，0 急停中
+ * Bit 6  Switch on disabled
+ * Bit 7  Warning：当前未使用
+ * Bit 8  当前未使用
+ * Bit 9  Remote：NMT Operational
+ * Bit 10 Target reached
+ * Bit 11 Internal limit active：当前未使用
+ * Bit 12 Set-point acknowledge
+ * Bit 13 Following error
+ * Bit 14 当前未使用
+ * Bit 15 当前未使用
 */
                     UNS16 TestSlave_obj6041 = 0x0;  
                     subindex TestSlave_Index6041[] = 
