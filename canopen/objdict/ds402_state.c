@@ -7,7 +7,7 @@
  * DS402 状态机模块
  *
  * 设计边界：
- * - 只解释 0x6040、维护 PDS 状态、生成 0x6041 基础状态位
+ * - 本文件只解释 0x6040、维护 PDS 状态、生成 0x6041 基础状态位
  * - 不直接计算位置、速度、转矩轨迹，也不直接发送 G4 私有命令
  * - main.c 每 1 ms 调用一次 Ds402_Update()，generator.c/torque.c 只查询状态
  */
@@ -40,11 +40,11 @@ extern UNS16 TestSlave_obj6041;
 #define DS402_SW_FOLLOWING_ERROR       0x2000u
 
 static DS402_State s_state = DS402_STATE_NOT_READY_TO_SWITCH_ON;
-static uint16_t s_prev_controlword = 0u;
-static uint16_t s_not_ready_ticks = 0u;
-static bool s_last_nmt_operational = false;
-static bool s_last_drive_online = false;
-static bool s_fault_reset_accepted = false;
+static uint16_t s_prev_controlword = 0u;        // 上一拍控制字
+static uint16_t s_not_ready_ticks = 0u;         // 上电后 Not ready 驻留时间
+static bool s_last_nmt_operational = false;     // NMT 是否为 Operational
+static bool s_last_drive_online = false;        // G4 链路是否稳定在线
+static bool s_fault_reset_accepted = false;     // 是否接受过故障复位
 
 /*
  * 函数作用：

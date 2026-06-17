@@ -127,7 +127,7 @@ int main(void)
 
     /*
      * 启动 1 ms 应用层控制节拍
-     * TIM3 的节拍仍由 generator.c 中的既有代码提供，但主循环会按 0x6060
+     * TIM3 的节拍由 generator.c 中的既有代码提供，但主循环会按 0x6060
      * 把同一节拍分发给位置/速度轨迹发生器或转矩模式处理器
      */
     Generator_Init(1000u);

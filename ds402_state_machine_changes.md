@@ -66,29 +66,7 @@
 
 - 同步加入 `ds402_state.h` 和 `ds402_state.c`，方便 Keil 图形界面打开工程时显示新文件。
 
-## 3. 编译结果
 
-已运行 Keil 命令行编译：
-
-```text
-D:\Keil\UV4\UV4.exe -b project\canopen-slave.uvprojx -j0 -o project\codex_ds402_build.log
-```
-
-编译日志：
-
-```text
-compiling main.c...
-compiling can_app.c...
-compiling bsp_can.c...
-compiling TestSlave.c...
-compiling ds402_state.c...
-compiling torque.c...
-compiling generator.c...
-linking...
-".\Objects\led.axf" - 0 Error(s), 0 Warning(s).
-```
-
-最终结果：`0 Error(s), 0 Warning(s)`。
 
 ## 4. 状态机整体工作流程
 
@@ -250,6 +228,7 @@ G4 故障、G4 通信超时、跟随误差任一出现时，运动模块把 `loc
 
 复位成功后状态从 `FAULT` 回到 `SWITCH_ON_DISABLED`，不会回到 `NOT_READY_TO_SWITCH_ON`
 只有重新上电或重新初始化状态机才会从 Not ready 开始
+
 
 ## 9. 位置模式数据流
 
